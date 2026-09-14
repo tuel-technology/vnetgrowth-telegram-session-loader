@@ -34,15 +34,33 @@ export function sidecarRoot(): string {
   return path.join(app.getAppPath(), "python-sidecar");
 }
 
-/** Bundled venv from CI (extraResources); dev uses project-root .venv */
+/**
+ * Packaged builds use relocatable python-build-standalone (.sidecar-runtime → sidecar-venv).
+ * Dev uses project-root .venv from `npm run sidecar:install`.
+ */
 export function sidecarBundledPython(): string {
   const isWin = process.platform === "win32";
   if (app.isPackaged) {
-    return isWin
-      ? path.join(process.resourcesPath, "sidecar-venv", "Scripts", "python.exe")
-      : path.join(process.resourcesPath, "sidecar-venv", "bin", "python3");
+    const root = path.join(process.resourcesPath, "sidecar-venv");
+    if (isWin) {
+      // Standalone layout: python.exe at runtime root. Legacy venv: Scripts/python.exe.
+      return path.join(root, "python.exe");
+    }
+    return path.join(root, "bin", "python3");
   }
   return isWin
     ? path.join(app.getAppPath(), ".venv", "Scripts", "python.exe")
     : path.join(app.getAppPath(), ".venv", "bin", "python3");
+}
+
+/** Packaged Windows may still ship a classic venv layout from older builds. */
+export function sidecarBundledPythonCandidates(): string[] {
+  const primary = sidecarBundledPython();
+  if (!app.isPackaged || process.platform !== "win32") {
+    return [primary];
+  }
+  return [
+    primary,
+    path.join(process.resourcesPath, "sidecar-venv", "Scripts", "python.exe"),
+  ];
 }

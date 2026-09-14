@@ -4,7 +4,7 @@ import path from "node:path";
 import fs from "node:fs";
 import fsPromises from "node:fs/promises";
 import log from "electron-log";
-import { sidecarBundledPython, sidecarRoot } from "./paths";
+import { sidecarBundledPython, sidecarBundledPythonCandidates, sidecarRoot } from "./paths";
 
 const SIDECAR_TIMEOUT_MS = 120_000;
 const SIDECAR_TEST_TIMEOUT_MS = 90_000;
@@ -58,8 +58,7 @@ function pythonExecutable(): string {
   const isWin = process.platform === "win32";
   const candidates: string[] = [];
 
-  const bundled = sidecarBundledPython();
-  candidates.push(bundled);
+  candidates.push(...sidecarBundledPythonCandidates());
 
   if (!app.isPackaged) {
     candidates.push(
@@ -79,7 +78,7 @@ function pythonExecutable(): string {
     }
   }
 
-  return bundled;
+  return sidecarBundledPython();
 }
 
 function assertSidecarRuntime(python: string): void {

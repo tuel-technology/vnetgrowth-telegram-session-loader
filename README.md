@@ -41,13 +41,17 @@ Optional: `export VNETGROWTH_PYTHON=/path/to/python`
 
 ## Build installers locally
 
+Packaged apps need a **relocatable** Python (not a machine-local `venv`). That is what CI ships:
+
 ```bash
+npm run sidecar:bundle      # macOS / Linux (uv + python-build-standalone)
+npm run sidecar:bundle:win  # Windows
 npm run build
 npm run dist:mac   # macOS
 npm run dist:win   # Windows
 ```
 
-Output under `release/`.
+`npm run sidecar:install` is only for local `npm run dev` when you already have Python 3.11 on the machine.
 
 ## Releasing (maintainers)
 
@@ -72,8 +76,10 @@ Unsigned builds show a security prompt on first launch. **Permanent fix:** confi
 **macOS workaround (current unsigned builds):**
 
 1. Drag the app to **Applications**.
-2. Open **System Settings > Privacy & Security** and click **Open Anyway** for Telegram Session Loader,  
-   **or** right-click the app in Applications, choose **Open**, then confirm **Open**.
+2. Double-click once and click **Done** on the verification warning (required before **Open Anyway** appears on macOS 15+).
+3. **System Settings > Privacy & Security > Security** (bottom) > **Open Anyway**, then confirm **Open**.
+4. If still blocked: `xattr -dr com.apple.quarantine "/Applications/Telegram Session Loader.app"`  
+   (Control-click > Open only works on macOS 14 and earlier.)
 
 **Windows workaround:** on SmartScreen, click **More info**, then **Run anyway**.
 

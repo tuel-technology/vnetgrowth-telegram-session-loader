@@ -2,10 +2,13 @@ VnetGrowth Telegram Session Loader - macOS (no paid Apple certificate)
 
 1. Download the Mac ZIP from GitHub releases or https://vnetgrowth.com/download/session-loader/install
 2. Extract the ZIP. Drag "Telegram Session Loader.app" to Applications.
-3. First launch - do NOT double-click from Finder if macOS blocks the app:
-   - System Settings > Privacy & Security > Open Anyway
-   OR right-click the app in Applications > Open > Open
-4. Optional Terminal (clears quarantine):
+3. Double-click the app once. When macOS warns it cannot verify the developer, click Done (not Move to Trash).
+   Open Anyway only appears after this failed launch (macOS Sequoia 15+ requires this).
+4. System Settings > Privacy & Security > scroll to Security at the bottom > Open Anyway for Telegram Session Loader.
+   Enter your password, then click Open in the confirmation dialog.
+5. If Open Anyway is missing: set "Allow apps downloaded from" to App Store and known developers,
+   OR on macOS 14 and earlier only: Control-click the app > Open > Open.
+6. Terminal (clears quarantine if still blocked):
    xattr -dr com.apple.quarantine "/Applications/Telegram Session Loader.app"
 
 Then open the app and use your order file from VnetGrowth.

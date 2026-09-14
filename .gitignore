@@ -3,6 +3,8 @@ dist/
 out/
 release/
 .venv/
+.sidecar-runtime/
+.uv-python/
 __pycache__/
 *.pyc
 .DS_Store

@@ -17,11 +17,9 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
       - run: npm ci
-      - run: npm run sidecar:install
+      - name: Bundle relocatable Python sidecar
+        run: npm run sidecar:bundle
       - run: npm run build
       - name: Build macOS installers
         env:
@@ -43,6 +41,8 @@ jobs:
         run: |
           cp resources/install/INSTALL-macOS.txt release/ 2>/dev/null || true
           cp resources/install/INSTALL-Windows.txt release/ 2>/dev/null || true
+          cp resources/install/open-on-mac.command release/ 2>/dev/null || true
+          chmod +x release/open-on-mac.command 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         with:
           name: installer-mac
@@ -50,6 +50,7 @@ jobs:
             release/*.dmg
             release/*.zip
             release/*.txt
+            release/*.command
             release/*.yml
             release/*.blockmap
           if-no-files-found: error
@@ -63,9 +64,6 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
       - name: Install npm dependencies
         shell: pwsh
         run: |
@@ -75,7 +73,8 @@ jobs:
             npm ci
           }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - run: npm run sidecar:install:win
+      - name: Bundle relocatable Python sidecar
+        run: npm run sidecar:bundle:win
       - run: npm run build
       - name: Build Windows installers
         shell: pwsh
@@ -99,6 +98,7 @@ jobs:
           path: |
             release/*.exe
             release/*.txt
+            release/*.command
             release/*.yml
             release/*.blockmap
           if-no-files-found: error
