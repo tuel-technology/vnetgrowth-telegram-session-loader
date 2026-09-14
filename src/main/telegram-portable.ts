@@ -11,6 +11,8 @@ const execFileAsync = promisify(execFile);
 
 const WIN_PORTABLE_URL = "https://telegram.org/dl/desktop/win64_portable";
 const MAC_DOWNLOAD_URL = "https://telegram.org/dl/desktop/mac";
+const MAC_SYSTEM_TELEGRAM = "/Applications/Telegram.app";
+const DOWNLOAD_TIMEOUT_MS = 25 * 60 * 1000;
 
 export type PortableStatus = {
   ready: boolean;
@@ -123,19 +125,121 @@ async function installMacTelegramFromDmg(dmgPath: string, destRoot: string): Pro
   }
 }
 
+async function downloadToFile(
+  url: string,
+  destPath: string,
+  onProgress: ((line: string) => void) | undefined,
+  label: string
+): Promise<void> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(url, { redirect: "follow", signal: controller.signal });
+    if (!res.ok) {
+      throw new Error(`${label} failed (HTTP ${res.status}).`);
+    }
+
+    const totalBytes = Number(res.headers.get("content-length") ?? 0);
+    onProgress?.(
+      totalBytes > 0
+        ? `${label} (about ${(totalBytes / (1024 * 1024)).toFixed(0)} MB from telegram.org)...`
+        : `${label} from telegram.org (this can take several minutes)...`
+    );
+
+    const body = res.body;
+    if (!body) {
+      const buffer = Buffer.from(await res.arrayBuffer());
+      await fs.writeFile(destPath, buffer);
+      onProgress?.(`${label} complete.`);
+      return;
+    }
+
+    const reader = body.getReader();
+    const handle = await fs.open(destPath, "w");
+    let received = 0;
+    let lastReportMs = 0;
+
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        received += value.byteLength;
+        await handle.write(value);
+
+        const now = Date.now();
+        if (now - lastReportMs >= 2500) {
+          lastReportMs = now;
+          const receivedMb = (received / (1024 * 1024)).toFixed(1);
+          if (totalBytes > 0) {
+            const pct = Math.min(100, Math.round((received / totalBytes) * 100));
+            const totalMb = (totalBytes / (1024 * 1024)).toFixed(1);
+            onProgress?.(`${label}... ${receivedMb} / ${totalMb} MB (${pct}%)`);
+          } else {
+            onProgress?.(`${label}... ${receivedMb} MB downloaded`);
+          }
+        }
+      }
+    } finally {
+      await handle.close();
+    }
+
+    onProgress?.(`${label} complete (${(received / (1024 * 1024)).toFixed(1)} MB).`);
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error(
+        `${label} timed out after ${Math.round(DOWNLOAD_TIMEOUT_MS / 60000)} minutes. Check your network and try Import again.`
+      );
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function copyMacTelegramFromApplications(
+  destRoot: string,
+  onProgress?: (line: string) => void
+): Promise<string | null> {
+  if (process.env.VNETGROWTH_SKIP_SYSTEM_TELEGRAM_COPY === "1") {
+    return null;
+  }
+  if (!(await pathExists(MAC_SYSTEM_TELEGRAM))) {
+    return null;
+  }
+
+  onProgress?.(
+    "Found Telegram.app in /Applications. Copying into app storage (faster than downloading)..."
+  );
+  const appDest = path.join(destRoot, "Telegram.app");
+  await fs.rm(appDest, { recursive: true, force: true });
+  await fs.cp(MAC_SYSTEM_TELEGRAM, appDest, { recursive: true });
+
+  const exe = await findTelegramBinary(destRoot);
+  if (!exe) {
+    return null;
+  }
+  onProgress?.("Telegram.app copied to isolated app storage.");
+  return exe;
+}
+
 async function downloadMacTelegram(
   root: string,
   onProgress?: (line: string) => void
 ): Promise<string> {
-  onProgress?.("Downloading Telegram for macOS from telegram.org...");
-  const res = await fetch(MAC_DOWNLOAD_URL, { redirect: "follow" });
-  if (!res.ok) {
-    throw new Error(`Failed to download Telegram for macOS (${res.status}).`);
+  const fromSystem = await copyMacTelegramFromApplications(root, onProgress);
+  if (fromSystem) {
+    return fromSystem;
   }
 
-  const buffer = Buffer.from(await res.arrayBuffer());
   const dmgPath = path.join(root, "Telegram.dmg");
-  await fs.writeFile(dmgPath, buffer);
+  const macUrl = process.env.VNETGROWTH_TELEGRAM_MAC_URL?.trim() || MAC_DOWNLOAD_URL;
+  await downloadToFile(
+    macUrl,
+    dmgPath,
+    onProgress,
+    "Downloading Telegram for macOS"
+  );
 
   onProgress?.("Installing Telegram.app into app storage (not /Applications)...");
   await installMacTelegramFromDmg(dmgPath, root);
@@ -151,15 +255,14 @@ async function downloadWindowsPortable(
   root: string,
   onProgress?: (line: string) => void
 ): Promise<string> {
-  onProgress?.("Downloading Telegram Desktop portable from telegram.org...");
-  const res = await fetch(WIN_PORTABLE_URL);
-  if (!res.ok) {
-    throw new Error(`Failed to download Telegram portable (${res.status}).`);
-  }
-
-  const buffer = Buffer.from(await res.arrayBuffer());
   const zipPath = path.join(root, "tportable.zip");
-  await fs.writeFile(zipPath, buffer);
+  const winUrl = process.env.VNETGROWTH_TELEGRAM_WIN_URL?.trim() || WIN_PORTABLE_URL;
+  await downloadToFile(
+    winUrl,
+    zipPath,
+    onProgress,
+    "Downloading Telegram Desktop portable"
+  );
 
   onProgress?.("Extracting portable Telegram...");
   const zip = new AdmZip(zipPath);
