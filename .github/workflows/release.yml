@@ -9,20 +9,8 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-latest
-            sidecar: npm run sidecar:install
-            dist: npm run dist:mac
-            artifact: mac
-          - os: windows-latest
-            sidecar: npm run sidecar:install:win
-            dist: npm run dist:win
-            artifact: win
-    runs-on: ${{ matrix.os }}
+  build-mac:
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -33,10 +21,9 @@ jobs:
         with:
           python-version: "3.11"
       - run: npm ci
-      - run: ${{ matrix.sidecar }}
+      - run: npm run sidecar:install
       - run: npm run build
-      - name: Build installers (macOS)
-        if: matrix.artifact == 'mac'
+      - name: Build macOS installers
         env:
           MACOS_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
           MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
@@ -52,41 +39,73 @@ jobs:
             export APPLE_TEAM_ID="$APPLE_TEAM_ID"
           fi
           npm run dist:mac
-      - name: Build installers (Windows)
-        if: matrix.artifact == 'win'
-        env:
-          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-        run: |
-          if [ -n "$WINDOWS_CERTIFICATE_BASE64" ]; then
-            export CSC_LINK="$WINDOWS_CERTIFICATE_BASE64"
-            export CSC_KEY_PASSWORD="$WINDOWS_CERTIFICATE_PASSWORD"
-          fi
-          npm run dist:win
-      - name: Bundle unsigned install guides
-        if: matrix.artifact == 'mac'
+      - name: Bundle install guides
         run: |
           cp resources/install/INSTALL-macOS.txt release/ 2>/dev/null || true
           cp resources/install/INSTALL-Windows.txt release/ 2>/dev/null || true
-      - name: Bundle unsigned install guides (Windows job)
-        if: matrix.artifact == 'win'
-        run: |
-          cp resources/install/INSTALL-Windows.txt release/ 2>/dev/null || true
-          cp resources/install/INSTALL-macOS.txt release/ 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         with:
-          name: installer-${{ matrix.artifact }}
+          name: installer-mac
           path: |
             release/*.dmg
-            release/*.exe
             release/*.zip
             release/*.txt
             release/*.yml
             release/*.blockmap
           if-no-files-found: error
 
+  build-win:
+    runs-on: windows-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install npm dependencies
+        shell: pwsh
+        run: |
+          npm ci
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "npm ci failed; retrying once..."
+            npm ci
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - run: npm run sidecar:install:win
+      - run: npm run build
+      - name: Build Windows installers
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          if ($env:WINDOWS_CERTIFICATE_BASE64) {
+            $env:CSC_LINK = $env:WINDOWS_CERTIFICATE_BASE64
+            $env:CSC_KEY_PASSWORD = $env:WINDOWS_CERTIFICATE_PASSWORD
+          }
+          npm run dist:win
+      - name: Bundle install guides
+        shell: pwsh
+        run: |
+          Copy-Item resources/install/INSTALL-Windows.txt release/ -ErrorAction SilentlyContinue
+          Copy-Item resources/install/INSTALL-macOS.txt release/ -ErrorAction SilentlyContinue
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-win
+          path: |
+            release/*.exe
+            release/*.txt
+            release/*.yml
+            release/*.blockmap
+          if-no-files-found: error
+
   publish:
-    needs: build
+    needs: [build-mac, build-win]
+    if: needs.build-mac.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
