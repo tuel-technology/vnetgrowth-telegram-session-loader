@@ -19,7 +19,12 @@ type UpdateStatusPayload =
   | { state: "error"; message: string };
 
 function importAllowedStatuses(status: string | undefined): boolean {
-  return status === "live" || status === "live_2fa" || status === "tdata_only";
+  return (
+    status === "live" ||
+    status === "live_2fa" ||
+    status === "tdata_only" ||
+    status === "importable_offline"
+  );
 }
 
 function isLiveVerifiedForPath(testResult: TestResult | null, selectedPath: string | null): boolean {
@@ -196,11 +201,13 @@ export default function App() {
     isLiveVerifiedForPath(testResult, selectedPath);
 
   const alertKind = testResult
-    ? testResult.ok
-      ? "ok"
-      : testResult.status === "inconclusive"
+    ? !testResult.ok
+      ? testResult.status === "inconclusive"
         ? "warn"
         : "err"
+      : testResult.status === "importable_offline"
+        ? "warn"
+        : "ok"
     : null;
 
   return (

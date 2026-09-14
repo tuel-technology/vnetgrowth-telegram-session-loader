@@ -1,6 +1,11 @@
 const TTL_MS = 45 * 60 * 1000;
 
-const LIVE_IMPORT_STATUSES = new Set(["live", "live_2fa", "tdata_only"]);
+const LIVE_IMPORT_STATUSES = new Set([
+  "live",
+  "live_2fa",
+  "tdata_only",
+  "importable_offline",
+]);
 
 type Entry = {
   sourcePath: string;
