@@ -10,7 +10,7 @@ Your personal Telegram install is **not** modified.
 ## Download (customers)
 
 **Smart link (picks Mac or Windows):**  
-https://virtualnetgrowth.com/download/session-loader
+https://vnetgrowth.com/download/session-loader
 
 **All builds:**  
 https://github.com/tuel-technology/vnetgrowth-telegram-session-loader/releases/latest

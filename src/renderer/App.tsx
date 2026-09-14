@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-const VNG_SITE = "https://virtualnetgrowth.com";
+const VNG_SITE = "https://vnetgrowth.com";
 
 type LogLine = { id: number; text: string; tone?: "ok" | "err" | "warn" | "muted" };
 
@@ -494,7 +494,7 @@ export default function App() {
             className="text-zinc-400 underline-offset-2 hover:text-blue-400 hover:underline"
             onClick={() => openSite("/")}
           >
-            virtualnetgrowth.com
+            vnetgrowth.com
           </button>
         </p>
       </footer>
