@@ -48,12 +48,19 @@ Output under `release/`.
 
 ## Releasing (maintainers)
 
+Before tagging:
+
+1. Bump `version` in `package.json`.
+2. Grep for `virtualnetgrowth.com` in this repo and `client-app/` (user-facing URLs only). Use **https://vnetgrowth.com** everywhere. Keep `com.virtualnetgrowth` in Electron `appId` as-is.
+3. Confirm `App.tsx` `VNG_SITE` and the smart download URL in this README match `vnetgrowth.com`.
+
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag -a v0.1.2 -m "v0.1.2"
+git push origin main
+git push origin v0.1.2
 ```
 
-GitHub Actions builds macOS and Windows artifacts and attaches them to the release.
+GitHub Actions builds macOS and Windows artifacts (including auto-update metadata) and attaches them to the release. Installed apps only pick up domain or UI fixes after users get a new release build.
 
 ## Security
 
