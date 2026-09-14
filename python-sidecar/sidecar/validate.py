@@ -16,6 +16,7 @@ from telethon.tl.functions.users import GetFullUserRequest
 from telethon.tl.types import InputUserSelf
 
 from sidecar.convert import CLIENT_KWARGS, _meta_api, _meta_device_kwargs, _session_stem
+from sidecar.session_sqlite import repair_telethon_session_sqlite
 
 VERIFY_TIMEOUT_SEC = 28
 
@@ -101,6 +102,7 @@ async def verify_session_with_telegram(session_path: str, meta: dict[str, Any]) 
         json_user_id = None
 
     stem = _session_stem(session_path)
+    repair_telethon_session_sqlite(f"{stem}.session")
     device_kwargs = _meta_device_kwargs(meta)
     client = TelegramClient(
         stem,
@@ -221,6 +223,7 @@ async def evaluate_session(session_path: str, meta: dict[str, Any]) -> dict[str,
         json_uid = None
 
     stem = _session_stem(session_path)
+    repair_telethon_session_sqlite(f"{stem}.session")
     device_kwargs = _meta_device_kwargs(meta)
     client = TelegramClient(
         stem,

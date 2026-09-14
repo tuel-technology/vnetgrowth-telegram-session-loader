@@ -10,6 +10,8 @@ from typing import Any, Callable, TypeVar
 from opentele.api import API, UseCurrentSession
 from opentele.tl import TelegramClient
 
+from sidecar.session_sqlite import repair_telethon_session_sqlite
+
 T = TypeVar("T")
 
 NETWORK_TIMEOUT_SEC = 35
@@ -82,10 +84,12 @@ def _session_unique_id(session_path: str) -> str:
 
 def _session_work_copy(session_path: str) -> tuple[str, str]:
     """Copy session to a temp dir so retries are not blocked by file locks."""
+    repair_telethon_session_sqlite(session_path)
     tmp = tempfile.mkdtemp(prefix="vng-session-")
     base = os.path.basename(_session_stem(session_path))
     dest_stem = os.path.join(tmp, base)
     shutil.copy2(session_path, f"{dest_stem}.session")
+    repair_telethon_session_sqlite(f"{dest_stem}.session")
     journal = f"{session_path}-journal"
     if os.path.isfile(journal):
         shutil.copy2(journal, f"{dest_stem}.session-journal")
