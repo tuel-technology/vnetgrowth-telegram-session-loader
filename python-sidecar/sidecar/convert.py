@@ -177,7 +177,8 @@ async def _convert_session_to_tdata(
     session_path: str,
     meta: dict[str, Any],
     out_dir: str,
-) -> None:
+) -> str:
+    """Returns 'offline' or 'online' depending on how tdata was produced."""
     errors: list[str] = []
     user_id = _meta_user_id(meta)
     work_stem, tmp_dir = _session_work_copy(session_path)
@@ -192,7 +193,7 @@ async def _convert_session_to_tdata(
                 if user_id is not None and await _try_offline_tdata(
                     client, user_id, unique_id, out_dir, label
                 ):
-                    return
+                    return "offline"
 
                 if not _session_has_auth_key(client):
                     errors.append(f"{label}: session has no auth key")
@@ -214,7 +215,7 @@ async def _convert_session_to_tdata(
                     errors.append(f"{label}: SaveTData failed")
                     continue
                 _log(f"{label}: success")
-                return
+                return "online"
             except Exception as exc:  # noqa: BLE001
                 errors.append(f"{label}: {exc}")
                 _log(f"{label} failed: {exc}")
@@ -256,12 +257,18 @@ def build_tdata(
             "Extract the full HStock archive (zip or rar), not only the JSON from the website."
         )
 
-    asyncio.run(_convert_session_to_tdata(session_path, meta, out_dir))
+    convert_mode = asyncio.run(_convert_session_to_tdata(session_path, meta, out_dir))
 
-    from sidecar.validate import verify_session_with_telegram_sync
+    if convert_mode == "offline":
+        _log(
+            "Skipping Telethon API verify after offline tdata build "
+            "(HStock sessions often fail API check but still work in Desktop)."
+        )
+    else:
+        from sidecar.validate import verify_session_with_telegram_sync
 
-    verify_error = verify_session_with_telegram_sync(session_path, meta)
-    if verify_error:
-        raise RuntimeError(verify_error)
+        verify_error = verify_session_with_telegram_sync(session_path, meta)
+        if verify_error:
+            raise RuntimeError(verify_error)
 
     return "session_converted"
