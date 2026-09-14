@@ -1,6 +1,6 @@
 {
   "name": "vnetgrowth-telegram-session-loader",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "private": true,
   "description": "Import HStock-style Telegram session bundles and open an isolated portable Telegram Desktop.",
   "main": "./out/main/index.js",
@@ -38,7 +38,9 @@
         "from": ".venv",
         "to": "sidecar-venv",
         "filter": [
-          "**/*"
+          "**/*",
+          "!**/__pycache__/**",
+          "!**/*.pyc"
         ]
       }
     ],
@@ -52,13 +54,13 @@
         {
           "target": "dmg",
           "arch": [
-            "universal"
+            "arm64"
           ]
         },
         {
           "target": "zip",
           "arch": [
-            "universal"
+            "arm64"
           ]
         }
       ]
@@ -92,8 +94,8 @@
     "dist": "electron-vite build && electron-builder --config electron-builder.config.js --publish never",
     "dist:mac": "electron-vite build && electron-builder --config electron-builder.config.js --mac --publish never",
     "dist:win": "electron-vite build && electron-builder --config electron-builder.config.js --win --publish never",
-    "sidecar:install": "python3 -m venv .venv && .venv/bin/pip install -r python-sidecar/requirements.txt",
-    "sidecar:install:win": "python -m venv .venv && .venv\\Scripts\\pip install -r python-sidecar/requirements.txt"
+    "sidecar:install": "python3 -m venv --copies .venv && .venv/bin/pip install -r python-sidecar/requirements.txt",
+    "sidecar:install:win": "python -m venv --copies .venv && .venv\\Scripts\\pip install -r python-sidecar/requirements.txt"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
