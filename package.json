@@ -1,6 +1,6 @@
 {
   "name": "vnetgrowth-telegram-session-loader",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Import HStock-style Telegram session bundles and open an isolated portable Telegram Desktop.",
   "main": "./out/main/index.js",
