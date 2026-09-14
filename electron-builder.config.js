@@ -1,6 +1,11 @@
 /** @type {import('electron-builder').Configuration} */
 const pkg = require("./package.json");
 
+if (!process.env.CSC_LINK?.trim()) {
+  delete process.env.CSC_LINK;
+  delete process.env.CSC_KEY_PASSWORD;
+}
+
 const hasMacSign =
   Boolean(process.env.CSC_LINK?.trim()) &&
   Boolean(process.env.CSC_KEY_PASSWORD?.trim());

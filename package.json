@@ -1,6 +1,6 @@
 {
   "name": "vnetgrowth-telegram-session-loader",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "description": "Import HStock-style Telegram session bundles and open an isolated portable Telegram Desktop.",
   "main": "./out/main/index.js",
@@ -82,9 +82,9 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.node.json",
-    "dist": "electron-vite build && electron-builder --publish never",
-    "dist:mac": "electron-vite build && electron-builder --mac --publish never",
-    "dist:win": "electron-vite build && electron-builder --win --publish never",
+    "dist": "electron-vite build && electron-builder --config electron-builder.config.js --publish never",
+    "dist:mac": "electron-vite build && electron-builder --config electron-builder.config.js --mac --publish never",
+    "dist:win": "electron-vite build && electron-builder --config electron-builder.config.js --win --publish never",
     "sidecar:install": "python3 -m venv .venv && .venv/bin/pip install -r python-sidecar/requirements.txt",
     "sidecar:install:win": "python -m venv .venv && .venv\\Scripts\\pip install -r python-sidecar/requirements.txt"
   },

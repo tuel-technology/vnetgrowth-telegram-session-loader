@@ -35,21 +35,34 @@ jobs:
       - run: npm ci
       - run: ${{ matrix.sidecar }}
       - run: npm run build
-      - name: Build installers (macOS signed + notarized when secrets set)
+      - name: Build installers (macOS)
         if: matrix.artifact == 'mac'
         env:
-          CSC_LINK: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
-          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_NOTARIZE_EMAIL }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_NOTARIZE_APP_PASSWORD }}
+          MACOS_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          APPLE_NOTARIZE_EMAIL: ${{ secrets.APPLE_NOTARIZE_EMAIL }}
+          APPLE_NOTARIZE_APP_PASSWORD: ${{ secrets.APPLE_NOTARIZE_APP_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: ${{ matrix.dist }}
-      - name: Build installers (Windows signed when secrets set)
+        run: |
+          if [ -n "$MACOS_CERTIFICATE_BASE64" ]; then
+            export CSC_LINK="$MACOS_CERTIFICATE_BASE64"
+            export CSC_KEY_PASSWORD="$MACOS_CERTIFICATE_PASSWORD"
+            export APPLE_ID="$APPLE_NOTARIZE_EMAIL"
+            export APPLE_APP_SPECIFIC_PASSWORD="$APPLE_NOTARIZE_APP_PASSWORD"
+            export APPLE_TEAM_ID="$APPLE_TEAM_ID"
+          fi
+          npm run dist:mac
+      - name: Build installers (Windows)
         if: matrix.artifact == 'win'
         env:
-          CSC_LINK: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
-          CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-        run: ${{ matrix.dist }}
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          if [ -n "$WINDOWS_CERTIFICATE_BASE64" ]; then
+            export CSC_LINK="$WINDOWS_CERTIFICATE_BASE64"
+            export CSC_KEY_PASSWORD="$WINDOWS_CERTIFICATE_PASSWORD"
+          fi
+          npm run dist:win
       - name: Bundle unsigned install guides
         if: matrix.artifact == 'mac'
         run: |
