@@ -50,6 +50,16 @@ jobs:
           CSC_LINK: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
           CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         run: ${{ matrix.dist }}
+      - name: Bundle unsigned install guides
+        if: matrix.artifact == 'mac'
+        run: |
+          cp resources/install/INSTALL-macOS.txt release/ 2>/dev/null || true
+          cp resources/install/INSTALL-Windows.txt release/ 2>/dev/null || true
+      - name: Bundle unsigned install guides (Windows job)
+        if: matrix.artifact == 'win'
+        run: |
+          cp resources/install/INSTALL-Windows.txt release/ 2>/dev/null || true
+          cp resources/install/INSTALL-macOS.txt release/ 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         with:
           name: installer-${{ matrix.artifact }}
@@ -57,6 +67,7 @@ jobs:
             release/*.dmg
             release/*.exe
             release/*.zip
+            release/*.txt
             release/*.yml
             release/*.blockmap
           if-no-files-found: error

@@ -1,0 +1,9 @@
+VnetGrowth Telegram Session Loader - Windows (no code signing certificate)
+
+1. Download the .exe installer from GitHub releases or https://vnetgrowth.com/download/session-loader/install
+2. Run the installer. If SmartScreen appears:
+   - Click "More info"
+   - Click "Run anyway"
+3. Open Telegram Session Loader from the Start menu.
+
+Then use your order archive from VnetGrowth (Test session, then Import).
