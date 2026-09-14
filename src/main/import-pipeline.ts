@@ -116,9 +116,12 @@ export async function runImportPipeline(
     await installTdataToPortable(tdataPath);
 
     emit({ phase: "launch", message: "Opening Telegram..." });
-    launchPortableTelegram();
+    await launchPortableTelegram();
 
-    emit({ phase: "launch", message: "Checking Telegram login response..." });
+    emit({
+      phase: "launch",
+      message: "Checking whether Telegram accepted the session (up to ~20s)...",
+    });
     const authProblem = await readPortableTelegramAuthProblem();
     if (authProblem) {
       emit({ phase: "error", message: authProblem });

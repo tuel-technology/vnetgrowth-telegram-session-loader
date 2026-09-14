@@ -392,48 +392,67 @@ async function copyDirRecursive(src: string, dest: string): Promise<void> {
 
 const AUTH_REJECT_MARKERS = ["AUTH_KEY_UNREGISTERED", "AUTH_KEY_INVALID"] as const;
 
-export async function readPortableTelegramAuthProblem(): Promise<string | null> {
-  await new Promise((r) => setTimeout(r, 4500));
-  const logPath = path.join(portableTelegramWorkdir(), "log.txt");
-  let text = "";
-  try {
-    text = await fs.readFile(logPath, "utf8");
-  } catch {
-    return null;
-  }
-
+function authProblemFromLog(text: string): string | null {
   for (const marker of AUTH_REJECT_MARKERS) {
     if (text.includes(marker)) {
       return (
         "Telegram rejected this order's session (" +
         marker +
         "). The delivery is expired or revoked on Telegram's servers. " +
-        "The loader built tdata correctly, but the account cannot log in. Contact your seller for a fresh session or tdata."
+        "Desktop may show Start Messaging instead of your chats. " +
+        "The loader installed tdata correctly, but this account cannot log in. " +
+        "Contact your seller (HStock) for a replacement."
       );
     }
   }
   return null;
 }
 
-export function launchPortableTelegram(): void {
-  void (async () => {
-    const binary = await findTelegramBinary(portableTelegramDir());
-    if (!binary) {
-      throw new Error("Telegram is not ready.");
-    }
+/** Poll portable Telegram log.txt after launch for auth rejection (welcome screen = dead session). */
+export async function readPortableTelegramAuthProblem(
+  maxWaitMs = 22_000
+): Promise<string | null> {
+  const logPath = path.join(portableTelegramWorkdir(), "log.txt");
+  const started = Date.now();
 
-    const args =
-      process.platform === "darwin"
-        ? ["-workdir", path.resolve(portableTelegramWorkdir())]
+  while (Date.now() - started < maxWaitMs) {
+    try {
+      const text = await fs.readFile(logPath, "utf8");
+      const problem = authProblemFromLog(text);
+      if (problem) {
+        return problem;
+      }
+    } catch {
+      // log not created yet
+    }
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+
+  return null;
+}
+
+export async function launchPortableTelegram(): Promise<void> {
+  const binary = await findTelegramBinary(portableTelegramDir());
+  if (!binary) {
+    throw new Error("Telegram is not ready.");
+  }
+
+  const args =
+    process.platform === "darwin"
+      ? ["-workdir", path.resolve(portableTelegramWorkdir())]
         : [];
 
-    log.info("Launching isolated Telegram", binary, args);
-    spawn(binary, args, {
-      cwd: process.platform === "darwin" ? path.resolve(portableTelegramWorkdir()) : path.dirname(binary),
-      detached: true,
-      stdio: "ignore",
-    }).unref();
-  })();
+  log.info("Launching isolated Telegram", binary, args);
+  spawn(binary, args, {
+    cwd:
+      process.platform === "darwin"
+        ? path.resolve(portableTelegramWorkdir())
+        : path.dirname(binary),
+    detached: true,
+    stdio: "ignore",
+  }).unref();
+
+  await new Promise((r) => setTimeout(r, 800));
 }
 
 export function isDev(): boolean {
