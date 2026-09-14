@@ -5,6 +5,7 @@ release/
 .venv/
 .sidecar-runtime/
 .uv-python/
+.tools/
 __pycache__/
 *.pyc
 .DS_Store

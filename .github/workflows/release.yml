@@ -17,6 +17,9 @@ jobs:
         with:
           node-version: 20
           cache: npm
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
       - run: npm ci
       - name: Bundle relocatable Python sidecar
         run: npm run sidecar:bundle
@@ -64,6 +67,9 @@ jobs:
         with:
           node-version: 20
           cache: npm
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
       - name: Install npm dependencies
         shell: pwsh
         run: |
@@ -74,7 +80,9 @@ jobs:
           }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Bundle relocatable Python sidecar
-        run: npm run sidecar:bundle:win
+        shell: pwsh
+        run: |
+          ./scripts/prepare-sidecar-runtime.ps1
       - run: npm run build
       - name: Build Windows installers
         shell: pwsh

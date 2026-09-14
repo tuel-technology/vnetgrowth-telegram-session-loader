@@ -1,6 +1,6 @@
 {
   "name": "vnetgrowth-telegram-session-loader",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "private": true,
   "description": "Import HStock-style Telegram session bundles and open an isolated portable Telegram Desktop.",
   "main": "./out/main/index.js",
@@ -97,7 +97,7 @@
     "sidecar:install": "python3 -m venv --copies .venv && .venv/bin/pip install -r python-sidecar/requirements.txt",
     "sidecar:install:win": "python -m venv --copies .venv && .venv\\Scripts\\pip install -r python-sidecar/requirements.txt",
     "sidecar:bundle": "bash scripts/prepare-sidecar-runtime.sh",
-    "sidecar:bundle:win": "powershell -ExecutionPolicy Bypass -File scripts/prepare-sidecar-runtime.ps1"
+    "sidecar:bundle:win": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-sidecar-runtime.ps1"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
