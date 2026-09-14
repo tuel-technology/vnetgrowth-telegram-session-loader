@@ -1,9 +1,10 @@
 import { app } from "electron";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import path from "node:path";
-import fs from "node:fs/promises";
+import fs from "node:fs";
+import fsPromises from "node:fs/promises";
 import log from "electron-log";
-import { sidecarRoot } from "./paths";
+import { sidecarBundledPython, sidecarRoot } from "./paths";
 
 const SIDECAR_TIMEOUT_MS = 120_000;
 const SIDECAR_TEST_TIMEOUT_MS = 90_000;
@@ -42,22 +43,63 @@ export type SidecarResult = {
   };
 };
 
+function pathExists(filePath: string): boolean {
+  try {
+    return fs.existsSync(filePath);
+  } catch {
+    return false;
+  }
+}
+
 function pythonExecutable(): string {
   const env = process.env.VNETGROWTH_PYTHON?.trim();
   if (env) return env;
 
-  const venvCandidates =
-    process.platform === "win32"
-      ? [
-          path.join(app.getAppPath(), ".venv", "Scripts", "python.exe"),
-          path.join(app.getAppPath(), "..", ".venv", "Scripts", "python.exe"),
-        ]
-      : [
-          path.join(app.getAppPath(), ".venv", "bin", "python3"),
-          path.join(app.getAppPath(), ".venv", "bin", "python"),
-        ];
+  const isWin = process.platform === "win32";
+  const candidates: string[] = [];
 
-  return venvCandidates[0] ?? "python3";
+  const bundled = sidecarBundledPython();
+  candidates.push(bundled);
+
+  if (!app.isPackaged) {
+    candidates.push(
+      path.join(app.getAppPath(), ".venv", isWin ? "Scripts/python.exe" : "bin/python3"),
+      path.join(app.getAppPath(), ".venv", isWin ? "Scripts/python.exe" : "bin/python")
+    );
+  }
+
+  candidates.push(isWin ? "python" : "python3");
+
+  for (const candidate of candidates) {
+    if (!candidate.includes("/") && !candidate.includes("\\")) {
+      return candidate;
+    }
+    if (pathExists(candidate)) {
+      return candidate;
+    }
+  }
+
+  return bundled;
+}
+
+function assertSidecarRuntime(python: string): void {
+  const root = sidecarRoot();
+  if (!pathExists(root)) {
+    throw new Error(
+      `Session tools are missing from this install (${root}). Download the latest Session Loader build.`
+    );
+  }
+
+  if (
+    (python.includes("/") || python.includes("\\")) &&
+    !pathExists(python)
+  ) {
+    throw new Error(
+      app.isPackaged
+        ? "Bundled Python for session checks is missing. Re-download the latest Telegram Session Loader from vnetgrowth.com."
+        : `Python not found at ${python}. Run npm run sidecar:install in telegram-session-loader.`
+    );
+  }
 }
 
 function killSidecar(child: ChildProcessWithoutNullStreams): void {
@@ -88,7 +130,10 @@ function runSidecarJson<T>(
   onLog?: (line: string) => void
 ): Promise<T> {
   const python = pythonExecutable();
+  assertSidecarRuntime(python);
   const sidecar = sidecarRoot();
+
+  log.info("[sidecar] python", python, "cwd", sidecar);
 
   return new Promise((resolve, reject) => {
     const child = spawn(python, moduleArgs, {
@@ -128,9 +173,12 @@ function runSidecarJson<T>(
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      const hint = app.isPackaged
+        ? " Reinstall the latest Session Loader from your vnetgrowth order page."
+        : " Run npm run sidecar:install in telegram-session-loader.";
       reject(
         new Error(
-          `Could not start Python sidecar (${python}). Run npm run sidecar:install in telegram-session-loader. ${err.message}`
+          `Could not start session tools (${python}).${hint} ${err.message}`
         )
       );
     });
@@ -171,7 +219,7 @@ export async function runSidecarImport(
   outTdataDir: string,
   onLog?: (line: string) => void
 ): Promise<SidecarResult> {
-  await fs.access(bundleDir).catch(() => {
+  await fsPromises.access(bundleDir).catch(() => {
     throw new Error("Bundle folder not found.");
   });
 
@@ -196,7 +244,7 @@ export async function runSidecarTest(
   bundleDir: string,
   onLog?: (line: string) => void
 ): Promise<SidecarTestResult> {
-  await fs.access(bundleDir).catch(() => {
+  await fsPromises.access(bundleDir).catch(() => {
     throw new Error("Bundle folder not found.");
   });
 

@@ -33,3 +33,16 @@ export function sidecarRoot(): string {
   }
   return path.join(app.getAppPath(), "python-sidecar");
 }
+
+/** Bundled venv from CI (extraResources); dev uses project-root .venv */
+export function sidecarBundledPython(): string {
+  const isWin = process.platform === "win32";
+  if (app.isPackaged) {
+    return isWin
+      ? path.join(process.resourcesPath, "sidecar-venv", "Scripts", "python.exe")
+      : path.join(process.resourcesPath, "sidecar-venv", "bin", "python3");
+  }
+  return isWin
+    ? path.join(app.getAppPath(), ".venv", "Scripts", "python.exe")
+    : path.join(app.getAppPath(), ".venv", "bin", "python3");
+}
