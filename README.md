@@ -62,6 +62,18 @@ git push origin v0.1.2
 
 GitHub Actions builds macOS and Windows artifacts (including auto-update metadata) and attaches them to the release. Installed apps only pick up domain or UI fixes after users get a new release build.
 
+## macOS "cannot verify" or Windows SmartScreen
+
+Unsigned builds show a security prompt on first launch. **Permanent fix:** configure Apple and Windows signing secrets in GitHub (see [docs/CODE_SIGNING.md](./docs/CODE_SIGNING.md)) and publish a new release tag.
+
+**macOS workaround (current unsigned builds):**
+
+1. Drag the app to **Applications**.
+2. Open **System Settings > Privacy & Security** and click **Open Anyway** for Telegram Session Loader,  
+   **or** right-click the app in Applications, choose **Open**, then confirm **Open**.
+
+**Windows workaround:** on SmartScreen, click **More info**, then **Run anyway**.
+
 ## Security
 
 Order files grant full account access. This app processes files locally and does not upload bundles to VnetGrowth servers.

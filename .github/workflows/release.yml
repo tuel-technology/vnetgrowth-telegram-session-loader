@@ -35,7 +35,21 @@ jobs:
       - run: npm ci
       - run: ${{ matrix.sidecar }}
       - run: npm run build
-      - run: ${{ matrix.dist }}
+      - name: Build installers (macOS signed + notarized when secrets set)
+        if: matrix.artifact == 'mac'
+        env:
+          CSC_LINK: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_NOTARIZE_EMAIL }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_NOTARIZE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: ${{ matrix.dist }}
+      - name: Build installers (Windows signed when secrets set)
+        if: matrix.artifact == 'win'
+        env:
+          CSC_LINK: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: ${{ matrix.dist }}
       - uses: actions/upload-artifact@v4
         with:
           name: installer-${{ matrix.artifact }}
