@@ -5,8 +5,11 @@ import { loadAppIcon } from "./app-icon";
 import { getPortableStatus } from "./telegram-portable";
 import { runImportPipeline, type ImportProgress } from "./import-pipeline";
 import { runTestPipeline, type TestProgress } from "./test-pipeline";
+import { initAutoUpdater, registerAutoUpdaterIpc } from "./auto-updater";
 
 log.initialize({ preload: false });
+
+let mainWindow: BrowserWindow | null = null;
 
 function createWindow(): void {
   const icon = loadAppIcon();
@@ -30,7 +33,14 @@ function createWindow(): void {
   } else {
     win.loadFile(path.join(__dirname, "../renderer/index.html"));
   }
+
+  mainWindow = win;
+  win.on("closed", () => {
+    if (mainWindow === win) mainWindow = null;
+  });
 }
+
+registerAutoUpdaterIpc();
 
 app.whenReady().then(() => {
   const icon = loadAppIcon();
@@ -38,6 +48,7 @@ app.whenReady().then(() => {
     app.dock?.setIcon(icon);
   }
   createWindow();
+  initAutoUpdater(() => mainWindow);
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

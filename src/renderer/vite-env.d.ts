@@ -5,6 +5,14 @@ type ImportProgressEvent = {
   message: string;
 };
 
+type UpdateStatusPayload =
+  | { state: "idle" }
+  | { state: "checking" }
+  | { state: "available"; version: string }
+  | { state: "downloading"; percent: number }
+  | { state: "ready"; version: string }
+  | { state: "error"; message: string };
+
 interface SessionLoaderApi {
   getPortableStatus: () => Promise<{
     ready: boolean;
@@ -30,6 +38,10 @@ interface SessionLoaderApi {
   }>;
   onImportProgress: (handler: (event: ImportProgressEvent) => void) => () => void;
   openExternal: (url: string) => Promise<void>;
+  downloadUpdate: () => Promise<{ ok: boolean }>;
+  installUpdate: () => Promise<{ ok: boolean }>;
+  checkForUpdates: () => Promise<{ ok: boolean; reason?: string }>;
+  onUpdateStatus: (handler: (payload: UpdateStatusPayload) => void) => () => void;
 }
 
 interface Window {

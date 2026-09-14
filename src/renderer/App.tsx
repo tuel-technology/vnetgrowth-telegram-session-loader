@@ -10,6 +10,14 @@ type TestResult = {
   message?: string;
 };
 
+type UpdateStatusPayload =
+  | { state: "idle" }
+  | { state: "checking" }
+  | { state: "available"; version: string }
+  | { state: "downloading"; percent: number }
+  | { state: "ready"; version: string }
+  | { state: "error"; message: string };
+
 function importAllowedStatuses(status: string | undefined): boolean {
   return status === "live" || status === "live_2fa" || status === "tdata_only";
 }
@@ -75,6 +83,7 @@ export default function App() {
   const [testResult, setTestResult] = useState<TestResult | null>(null);
   /** Path that last passed a live (or tdata-only) test; must match current selection to import. */
   const [verifiedPath, setVerifiedPath] = useState<string | null>(null);
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatusPayload | null>(null);
 
   const pushLog = useCallback((text: string, tone?: LogLine["tone"]) => {
     setLogs((prev) => [...prev, { id: Date.now() + Math.random(), text, tone }]);
@@ -86,6 +95,34 @@ export default function App() {
     });
     return off;
   }, [pushLog]);
+
+  useEffect(() => {
+    const off = window.sessionLoader.onUpdateStatus((payload) => {
+      if (payload.state === "idle" || payload.state === "checking") {
+        setUpdateStatus(null);
+        return;
+      }
+      setUpdateStatus(payload);
+    });
+    return off;
+  }, []);
+
+  const startUpdateDownload = async () => {
+    pushLog("Downloading update...", "muted");
+    try {
+      await window.sessionLoader.downloadUpdate();
+    } catch {
+      pushLog("Could not download update. Try again or use the website download link.", "err");
+    }
+  };
+
+  const installUpdate = () => {
+    if (busy) {
+      pushLog("Finish the current test or import before restarting for an update.", "warn");
+      return;
+    }
+    void window.sessionLoader.installUpdate();
+  };
 
   const pick = async () => {
     const path = await window.sessionLoader.pickBundle();
@@ -185,6 +222,75 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {updateStatus?.state === "available" ? (
+        <div className="shrink-0 border-b border-amber-500/25 bg-amber-500/10 px-6 py-3 sm:px-8">
+          <div className="mx-auto flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-amber-100/95">
+              Update <span className="font-semibold">v{updateStatus.version}</span> is available.
+              Install it here - no manual download needed.
+            </p>
+            <button
+              type="button"
+              className="btn-primary shrink-0 px-4 py-2 text-sm"
+              disabled={busy}
+              onClick={() => void startUpdateDownload()}
+            >
+              Update now
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {updateStatus?.state === "downloading" ? (
+        <div className="shrink-0 border-b border-blue-500/25 bg-blue-500/10 px-6 py-3 sm:px-8">
+          <div className="mx-auto max-w-4xl">
+            <p className="text-sm text-blue-100/95">
+              Downloading update... {Math.round(updateStatus.percent)}%
+            </p>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-800">
+              <div
+                className="h-full rounded-full bg-blue-500 transition-[width] duration-300"
+                style={{ width: `${Math.min(100, Math.max(0, updateStatus.percent))}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {updateStatus?.state === "ready" ? (
+        <div className="shrink-0 border-b border-emerald-500/25 bg-emerald-500/10 px-6 py-3 sm:px-8">
+          <div className="mx-auto flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-emerald-100/95">
+              Update <span className="font-semibold">v{updateStatus.version}</span> is ready. Restart
+              to finish.
+            </p>
+            <button
+              type="button"
+              className="btn-primary shrink-0 px-4 py-2 text-sm"
+              disabled={busy}
+              onClick={installUpdate}
+            >
+              Restart and update
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {updateStatus?.state === "error" ? (
+        <div className="shrink-0 border-b border-zinc-700 bg-zinc-900/80 px-6 py-2.5 sm:px-8">
+          <p className="mx-auto max-w-4xl text-center text-xs text-zinc-500">
+            In-app update unavailable ({updateStatus.message}).{" "}
+            <button
+              type="button"
+              className="text-blue-400 underline-offset-2 hover:underline"
+              onClick={() => openSite("/download/session-loader")}
+            >
+              Download from website
+            </button>
+          </p>
+        </div>
+      ) : null}
 
       <main className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-6 sm:px-8">
         <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-5">

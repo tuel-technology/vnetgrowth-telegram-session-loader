@@ -9,11 +9,11 @@ Your personal Telegram install is **not** modified.
 
 ## Download (customers)
 
-Installers are published on GitHub Releases:
+**Smart link (picks Mac or Windows):**  
+https://virtualnetgrowth.com/download/session-loader
 
-**https://github.com/tuel-technology/vnetgrowth-telegram-session-loader/releases/latest**
-
-Pick the `.dmg` (macOS) or Windows installer from the latest release.
+**All builds:**  
+https://github.com/tuel-technology/vnetgrowth-telegram-session-loader/releases/latest
 
 ## User flow
 

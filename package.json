@@ -1,6 +1,6 @@
 {
   "name": "vnetgrowth-telegram-session-loader",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Import HStock-style Telegram session bundles and open an isolated portable Telegram Desktop.",
   "main": "./out/main/index.js",
@@ -13,42 +13,76 @@
       "buildResources": "resources",
       "output": "release"
     },
-    "files": ["out/**/*"],
+    "artifactName": "VNG-Telegram-Session-Loader-${version}-${os}-${arch}.${ext}",
+    "files": [
+      "out/**/*"
+    ],
     "extraResources": [
       {
         "from": "resources",
         "to": ".",
-        "filter": ["icon.icns", "icon.ico", "icon.png", "logo.svg"]
+        "filter": [
+          "icon.png",
+          "logo.svg"
+        ]
       },
       {
         "from": "python-sidecar",
         "to": "python-sidecar",
-        "filter": ["**/*", "!.venv/**"]
+        "filter": [
+          "**/*",
+          "!.venv/**"
+        ]
       }
     ],
     "mac": {
       "icon": "resources/icon.icns",
-      "category": "public.app-category.utilities"
+      "category": "public.app-category.utilities",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
+        }
+      ]
     },
     "win": {
       "icon": "resources/icon.ico",
-      "target": ["nsis"]
-    }
+      "target": [
+        "nsis"
+      ]
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "tuel-technology",
+        "repo": "vnetgrowth-telegram-session-loader",
+        "releaseType": "release"
+      }
+    ]
   },
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.node.json",
-    "dist": "electron-vite build && electron-builder",
-    "dist:mac": "electron-vite build && electron-builder --mac",
-    "dist:win": "electron-vite build && electron-builder --win",
+    "dist": "electron-vite build && electron-builder --publish never",
+    "dist:mac": "electron-vite build && electron-builder --mac --publish never",
+    "dist:win": "electron-vite build && electron-builder --win --publish never",
     "sidecar:install": "python3 -m venv .venv && .venv/bin/pip install -r python-sidecar/requirements.txt",
     "sidecar:install:win": "python -m venv .venv && .venv\\Scripts\\pip install -r python-sidecar/requirements.txt"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
     "electron-log": "^5.4.3",
+    "electron-updater": "^6.8.9",
     "node-unrar-js": "^2.0.2"
   },
   "devDependencies": {

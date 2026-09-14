@@ -5,6 +5,14 @@ export type ImportProgressEvent = {
   message: string;
 };
 
+export type UpdateStatusPayload =
+  | { state: "idle" }
+  | { state: "checking" }
+  | { state: "available"; version: string }
+  | { state: "downloading"; percent: number }
+  | { state: "ready"; version: string }
+  | { state: "error"; message: string };
+
 contextBridge.exposeInMainWorld("sessionLoader", {
   getPortableStatus: () => ipcRenderer.invoke("portable-status"),
   pickBundle: () => ipcRenderer.invoke("pick-bundle") as Promise<string | null>,
@@ -32,4 +40,16 @@ contextBridge.exposeInMainWorld("sessionLoader", {
     return () => ipcRenderer.removeListener("import-progress", listener);
   },
   openExternal: (url: string) => ipcRenderer.invoke("open-external", url),
+  downloadUpdate: () =>
+    ipcRenderer.invoke("update-download") as Promise<{ ok: boolean }>,
+  installUpdate: () =>
+    ipcRenderer.invoke("update-install") as Promise<{ ok: boolean }>,
+  checkForUpdates: () =>
+    ipcRenderer.invoke("update-check") as Promise<{ ok: boolean; reason?: string }>,
+  onUpdateStatus: (handler: (payload: UpdateStatusPayload) => void) => {
+    const listener = (_: Electron.IpcRendererEvent, payload: UpdateStatusPayload) =>
+      handler(payload);
+    ipcRenderer.on("update-status", listener);
+    return () => ipcRenderer.removeListener("update-status", listener);
+  },
 });
